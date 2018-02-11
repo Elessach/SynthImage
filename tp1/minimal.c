@@ -28,6 +28,103 @@ static unsigned int RED = 255;
 static unsigned int GREEN = 255;
 static unsigned int BLUE = 255;
 
+typedef struct Point{
+	float x, y;
+	unsigned char r, g, b;
+	struct Point* next;
+} Point, *PointList;
+
+typedef struct Primitive{
+	GLenum primitiveType;
+	PointList points;
+	struct Primitive* next;
+} Primitive, *PrimitiveList;
+
+Point* allocPoint(float x, float y, unsigned int r, unsigned int g, unsigned int b){
+	Point* tmp;
+	tmp=malloc(sizeof(Point));
+	if(tmp!=NULL){
+		tmp->x = x;
+		tmp->y = y;
+		tmp->r = r;
+		tmp->g = g;
+		tmp->b = b;
+		tmp->next=NULL;
+		return tmp;
+	}
+	else{ return NULL; }
+}
+
+Primitive* allocPrimitive(GLenum primitiveType){
+	Primitive* tmp;
+	tmp=malloc(sizeof(Primitive));
+	if(tmp!=NULL){
+		tmp->primitiveType=primitiveType;
+		tmp->points=NULL;
+		tmp->next=NULL;
+		return tmp;
+	}
+	else{return NULL;}
+}
+
+void addPointToList(Point* point, PointList* list){
+	if(list==NULL){ printf("ERROR LIST NULL \n"); }
+	else{
+		while((*list)->next!=NULL){
+			list=(*list)->next;
+		}
+		(*list)->next=point;	
+	}
+}
+
+void addPrimitive(Primitive* primitive, PrimitiveList* list){
+	if(list==NULL){ printf("ERROR LIST NULL \n"); }
+	else{
+		while((*list)->next!=NULL){
+			list=(*list)->next;
+		}
+		(*list)->next=primitive;	
+	}
+}
+
+void drawPoints(PointList list){
+	if(list==NULL){ printf("ERROR LIST NULL \n"); }
+	else{
+		while(list!=NULL){
+			glColor3ub(list->r, list->g, list->b );
+			glVertex2f(list->x, list->y);
+			list=list->next;
+		}	
+	}
+}
+
+
+void drawPrimitive(PrimitiveList list){
+	if(list==NULL){ printf("ERROR LIST NULL \n");}
+	else{
+		while(list!=NULL){
+			glBegin(list->primitiveType);
+			drawPoints(list->points);
+			glEnd();
+			list=list->next;
+		}
+	}
+}
+
+void deletePoints(PointList* list){
+	while(list!=NULL){
+		list=NULL;
+		list=(*list)->next;
+	}
+}
+
+void deletePrimitive(Primitive* list){
+	while(list!=NULL){
+		list=NULL;
+		list=list->next;
+	}
+}
+
 void resize(){
 	SDL_SetVideoMode(WINDOW_WIDTH, WINDOW_HEIGHT, BIT_PER_PIXEL, SDL_OPENGL | SDL_RESIZABLE);
 	glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
@@ -36,7 +133,7 @@ void resize(){
 	gluOrtho2D(-1., 1., -1., 1.);
 }
 
-void drawShape(){
+/*void drawShape(){
     glColor3ub(RED, GREEN, BLUE);
 	switch(PRIM){
 	    case 1:
@@ -58,7 +155,7 @@ void drawShape(){
 	   		break;
 	}
 	glEnd();
-}
+}*/
 
 void reset(){
 	int i, j;
@@ -131,7 +228,9 @@ int main(int argc, char** argv) {
   }
 
   SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 0);
-  
+  Primitive currentPrim;
+  PrimitiveList list = allocPrimitive(GL_POINTS);
+
   /* Ouverture d'une fenêtre et création d'un contexte OpenGL */
   if(NULL == SDL_SetVideoMode(WINDOW_WIDTH, WINDOW_HEIGHT, BIT_PER_PIXEL, SDL_OPENGL | SDL_GL_DOUBLEBUFFER | SDL_RESIZABLE)) {
     fprintf(stderr, "Impossible d'ouvrir la fenetre. Fin du programme.\n");
@@ -140,7 +239,6 @@ int main(int argc, char** argv) {
   
   /* Titre de la fenêtre */
   SDL_WM_SetCaption("Anticonstitutionnellement", NULL);
- 
   glClear(GL_COLOR_BUFFER_BIT);
     
 
@@ -170,12 +268,10 @@ int main(int argc, char** argv) {
         case SDL_MOUSEBUTTONUP:
         	switch(MODE){
         		case 'd':
-        			POINTS[NB_PTS][0]=e.button.x;
-        			POINTS[NB_PTS][1]=e.button.y;
-        			NB_PTS++;
+        			addPointToList(allocPoint(e.button.x, e.button.y, RED, GREEN, BLUE ), &currentPrim.points);
+           			NB_PTS++;
         			if(NB_PTS==PRIM){
-        				drawShape();
-        				reset();
+        				addPrimitive(&currentPrim, &list);
         			}        			
         			break;
         		case 'c':
@@ -196,15 +292,18 @@ int main(int argc, char** argv) {
           		break;
           	case 108: // touche l pour dessiner des lignes
           		PRIM = 2;
+          		currentPrim=*allocPrimitive(GL_LINES);
           		break;
           	case 112: // touche p pour dessiner des points
           		PRIM = 1;
+          		currentPrim=*allocPrimitive(GL_POINTS);
           		break;
             case 113: // touche q pour quitter
               loop=0;
               break;
             case 116: // touche t pour dessiner des triangles
             	PRIM = 3;
+          		currentPrim=*allocPrimitive(GL_TRIANGLES);
             	break;
             default:
               break;
@@ -240,6 +339,8 @@ int main(int argc, char** argv) {
     if(elapsedTime < FRAMERATE_MILLISECONDS) {
       SDL_Delay(FRAMERATE_MILLISECONDS - elapsedTime);
     }
+
+    //drawPrimitive(list);
   }
   
   SDL_GL_SwapBuffers();
