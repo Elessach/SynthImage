@@ -14,19 +14,20 @@ static const unsigned int BIT_PER_PIXEL = 32;
 /* Nombre minimal de millisecondes separant le rendu de deux images */
 static const Uint32 FRAMERATE_MILLISECONDS = 1000 / 60;
 
-
 typedef struct Point{
   float x, y;       // coordonnées
+  unsigned char r, g, b;  // couleur
   struct Point* next;
 } Point, *PointList;
 
-typedef struct Line{; // type de forme
+typedef struct Primitive{
+  GLenum primitiveType; // type de forme
   PointList points;   // points formant la forme
   struct Primitive* next;
 } Primitive, *PrimitiveList;
 
 /* alloue et initialise un point */
-Point* allocPoint(float x, float y){
+Point* allocPoint(float x, float y, unsigned int r, unsigned int g, unsigned int b){
   Point* tmp;
   tmp=malloc(sizeof(Point));
   if(!tmp){
@@ -34,15 +35,19 @@ Point* allocPoint(float x, float y){
   }
   tmp->x = x;
   tmp->y = y;
+  tmp->r = r;
+  tmp->g = g;
+  tmp->b = b;
   tmp->next=NULL;
   return tmp;
 }
 
 /* alloue et initialise une primitive */
-Primitive* allocPrimitive(){
+Primitive* allocPrimitive(GLenum primitiveType){
   Primitive* tmp;
   tmp=malloc(sizeof(Primitive));
   if(tmp!=NULL){
+    tmp->primitiveType=primitiveType;
     tmp->points=NULL;
     tmp->next=NULL;
     return tmp;
@@ -73,6 +78,7 @@ void addPrimitive(Primitive* primitive, PrimitiveList* list){
 /* dessine les points correspondant à une primitive */
 void drawPoints(PointList list){ 
   while(list){
+    glColor3ub(list->r, list->g, list->b );
     glVertex2f(list->x, list->y);
     list=list->next;
   }
@@ -81,11 +87,18 @@ void drawPoints(PointList list){
 /* dessine une primitive en fonction de sa liste de points */
 void drawPrimitive(PrimitiveList list){
   while(list!=NULL){
-    glBegin(GL_LINES);
-    glColor3ub(0, 0, 0);
+    glBegin(list->primitiveType);
     drawPoints(list->points);
     glEnd();
     list=list->next;
+  }
+}
+
+/* supprime les points quand on ferme le programme */
+void emptyPoints(PointList* list){
+  while(*list){
+    *list=NULL;
+    *list=(*list)->next;
   }
 }
 
@@ -101,7 +114,7 @@ void deletePoints(PointList* list){
 void deletePrimitive(PrimitiveList* list){
   while(*list){
     Primitive* next = (*list)->next;
-    deletePoints(&(*list)->next);
+    deletePoints(&(*list)->points);
     free(*list);
     *list=next;
   }
@@ -123,16 +136,14 @@ int main(int argc, char** argv) {
   /* Titre de la fenêtre */
   SDL_WM_SetCaption("Oignon", NULL);
   
-  PrimitiveList list = NULL;
-  Primitive* prim = allocPrimitive();
-  addPrimitive(prim, &list);
+  glClearColor(0.1, 0.1, 0.1, 1.0);
+  glClear(GL_COLOR_BUFFER_BIT);
 
-  PointList current = NULL;
 
-  PointList firstPoint = NULL;
-  int first =1;
+  //PrimitiveList list=NULL;
+ // PointList current=NULL;
 
-  int nb_pts=0;
+  //int nb_pts=0;
 
   /* Boucle d'affichage */
   int loop = 1;
@@ -141,10 +152,14 @@ int main(int argc, char** argv) {
     Uint32 startTime = SDL_GetTicks();
     
     /* Placer ici le code de dessin */
-    glClear(GL_COLOR_BUFFER_BIT);
-    drawPrimitive(list);
+   //s glClear(GL_COLOR_BUFFER_BIT);
 
-    /* Echange du front et du back buffer : mise à jour de la fenêtre */
+      glBegin(GL_LINES);
+      glColor3ub(255, 255, 255);
+      glVertex2f(-1 + 2. * 300 / WINDOW_WIDTH, -1 + 2. * 500 / WINDOW_WIDTH);
+      glVertex2f(-1 + 2. * 400 / WINDOW_WIDTH, -1 + 2. * 600 / WINDOW_WIDTH); 
+      glEnd();
+      //nb_pts=0;
     
 
     /* Boucle traitant les evenements */
@@ -159,26 +174,13 @@ int main(int argc, char** argv) {
       /* Quelques exemples de traitement d'evenements : */
       switch(e.type) {
         /* Clic souris */
-        case SDL_MOUSEBUTTONUP:
-          if(first==1){
-            addPointToList(allocPoint(e.button.x, e.button.y), firstPoint);
-            first=0;
-          }
-          addPointToList(allocPoint(e.button.x, e.button.y), current);
+        /*case SDL_MOUSEBUTTONUP:;
+          float x = -1 + 2. * e.button.x / WINDOW_WIDTH;
+          float y = -(-1 + 2. * e.button.y / WINDOW_HEIGHT);
+          addPointToList(allocPoint(x, y, 255, 255, 255), &current);
           nb_pts+=1;
-          if(nb_pts==2){
-            Primitive* newPrim = allocPrimitive();
-            newPrim->points=current;
-            addPrimitive(newPrim, list);
-            deletePoints(current);
-            nb_pts=0;
-          }
-          break;
-          
-        /* Touche clavier */
-        case SDL_KEYDOWN:
-          break;
-          
+          break;*/
+
         default:
           break;
       }
@@ -193,7 +195,8 @@ int main(int argc, char** argv) {
   
   SDL_GL_SwapBuffers();
 
-  deletePrimitive(list);
+  //deletePrimitive(&list);
+  printf("delete prim ok\n");
   /* Liberation des ressources associées à la SDL */ 
   SDL_Quit();
   
