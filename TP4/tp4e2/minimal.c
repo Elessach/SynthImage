@@ -37,28 +37,11 @@ int main(int argc, char** argv) {
     resizeViewport();
 
     SDL_Surface* logoImac;
-	logoImac = IMG_Load("logo_imac_400x400.jpg");
+	logoImac = IMG_Load("nada.jpg");
 	if(logoImac==NULL){
 		fprintf(stderr, "Impossible de trouver l'image");
 		return EXIT_FAILURE;
 	}
-	GLuint textureID;
-	glGenTextures(1, &textureID);
-	glBindTexture(GL_TEXTURE_2D, textureID);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	gltexImage2D(
-		GL_TEXTURE_2D,
-		0,
-		GL_RGB,
-		logoImac->width,
-		logoImac->height,
-		0,
-		GL_RGB,
-		GL_UNSIGNED_CHAR,
-		logoImac->pixels
-	);
-	glBindTexture(GL_TEXTURE_2D, 0);
-
     SDL_FreeSurface(logoImac);
 
     /* Boucle de dessin (à décommenter pour l'exercice 3)
@@ -103,7 +86,8 @@ int main(int argc, char** argv) {
     }
     */
 
-    glDeleteTextures(1, &textureID);
+    // TODO: Libération des données GPU
+    // ...
 
     // Liberation des ressources associées à la SDL
     SDL_Quit();
