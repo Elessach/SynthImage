@@ -20,8 +20,21 @@ void resizeViewport() {
 
 const char* filename = "logo_imac_400x400.jpg";
 
-void drawLogoImac(){
-
+void drawLogoImac(GLuint textureID){
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, textureID);
+        glBegin(GL_QUADS);
+            glTexCoord2f(0,0);
+            glVertex2f(-0.5, 0.5);
+            glTexCoord2f(1,0);
+            glVertex2f(0.5, 0.5);
+            glTexCoord2f(1,1);
+            glVertex2f(0.5, -0.5);
+            glTexCoord2f(0,1);
+            glVertex2f(-0.5, -0.5);
+        glEnd();
+    glDisable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, 0);   
 }
 
 int main(int argc, char** argv) {
@@ -75,21 +88,8 @@ int main(int argc, char** argv) {
         	glTranslatef(0.5, 0.5, 0);
         	glRotatef(45, 0.0, 0.0, 1.0);
         	glScalef(0.5, 0.5, 0);
-		        glEnable(GL_TEXTURE_2D);
-		        glBindTexture(GL_TEXTURE_2D, textureID);
-		        glBegin(GL_QUADS);
-		        	glTexCoord2f(0,0);
-		        	glVertex2f(-0.5, 0.5);
-		        	glTexCoord2f(1,0);
-		        	glVertex2f(0.5, 0.5);
-		        	glTexCoord2f(1,1);
-		        	glVertex2f(0.5, -0.5);
-		        	glTexCoord2f(0,1);
-		        	glVertex2f(-0.5, -0.5);
-		        glEnd();
-		        glDisable(GL_TEXTURE_2D);
-		        glBindTexture(GL_TEXTURE_2D, 0);
-	      glPopMatrix();
+	        drawLogoImac(textureID);
+	    glPopMatrix();
 
         SDL_Event e;
         while(SDL_PollEvent(&e)) {
