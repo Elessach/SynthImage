@@ -12,7 +12,7 @@ static const unsigned int BIT_PER_PIXEL = 32;
 static const Uint32 FRAMERATE_MILLISECONDS = 1000 / 60;
 
 #define SIZE 26
-#define NB_SEG 100
+#define NB_SEG 70
 #define PI 3.14159
 
 #define SUN_DIAM 14.0
@@ -20,43 +20,8 @@ static const Uint32 FRAMERATE_MILLISECONDS = 1000 / 60;
 /* on crée une structure planète */
 typedef struct planet{
 	float diam, dist, speed;
-	int r, g, b;
 } Planet;
 
-void initColor(Planet (*system)[8]){
-	/* Mercure est gris */ 
-	(*system)[0].r=150;
-	(*system)[0].g=150;
-	(*system)[0].b=150;
-	/* Vénus est orange */ 
-	(*system)[1].r=250;
-	(*system)[1].g=150;
-	(*system)[1].b=65;
-	/* Terre est verte */ 
-	(*system)[2].r=50;
-	(*system)[2].g=90;
-	(*system)[2].b=60;
-	/* Mars est rouge */ 
-	(*system)[3].r=220;
-	(*system)[3].g=45;
-	(*system)[3].b=45;
-	/* Jupiter est marron */ 
-	(*system)[4].r=115;
-	(*system)[4].g=75;
-	(*system)[4].b=44;
-	/* Saturne est jaune */ 
-	(*system)[5].r=255;
-	(*system)[5].g=255;
-	(*system)[5].b=120;
-	/* Uranus est turquoise */ 
-	(*system)[6].r=0;
-	(*system)[6].g=160;
-	(*system)[6].b=160;
-	/* Neptune est bleue */ 
-	(*system)[7].r=70;
-	(*system)[7].g=55;
-	(*system)[7].b=150;
-}
 /* initialise les diametres des planètes */
 void initDiamPlanets(Planet (*system)[8]){
 	(*system)[0].diam=0.25;
@@ -148,18 +113,10 @@ void drawLandmark(){
 	glEnd();
 }
 
-/* dessine un cercle */
-void drawCircle(int full){
-	/* couleur et remplissage */
-	if(full==1)
-		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-	else
-		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
-	int i;
-	/* dessine un polygone en fonction du nb de côtés voulus */
-	/* plus le nb de côtés est grand, plus on se rapproche d'un cercle */
+void drawOrbit(){
+	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);	
 	glBegin(GL_POLYGON);
+	int i;
 	for(i=0;i<=NB_SEG;i++){
 		float angle=(2*PI/NB_SEG)*(float)i;
 		glVertex2f(0.5*cos(angle),0.5*sin(angle));
@@ -167,7 +124,27 @@ void drawCircle(int full){
 	glEnd();
 }
 
-void drawPlanets(Planet system[8], float time[8]){
+/* dessine un cercle */
+void drawPlanet(GLuint texture){
+	int i;
+	/* dessine un polygone en fonction du nb de côtés voulus */
+	/* plus le nb de côtés est grand, plus on se rapproche d'un cercle */
+
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	glEnable(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D, texture);
+		glBegin(GL_POLYGON);
+		for(i=0;i<=NB_SEG;i++){
+			float angle=(2*PI/NB_SEG)*(float)i;
+			glTexCoord2f((0.5*cos(angle)+1)/2,-(0.5*sin(angle)+1)/2);
+			glVertex2f(0.5*cos(angle),0.5*sin(angle));
+		}
+		glEnd();
+	glDisable(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+void drawPlanets(Planet system[8], float time[8], GLuint textures[]){
 	int i;
 	for(i=0;i<8;i++){
 		/* on dessine les orBITEs */
@@ -175,14 +152,13 @@ void drawPlanets(Planet system[8], float time[8]){
 			glScalef(system[i].dist, system[i].dist, 1);
 			glColor3ub(255,255,255);
 			glLineWidth(1);
-			drawCircle(0);
+			drawOrbit();
 		glPopMatrix();
 
 		glPushMatrix();
 			glTranslatef((system[i].dist/2)*cos(2*time[i]*PI/180), (system[i].dist/2)*sin(2*time[i]*PI/180), 0);
 			glScalef(system[i].diam, system[i].diam, 1);
-			glColor3ub(system[i].r, system[i].g, system[i].b);
-			drawCircle(1);
+			drawPlanet(textures[i]);
 		glPopMatrix();
 	}
 }
@@ -208,11 +184,43 @@ int main(int argc, char** argv) {
     initDiamPlanets(&solarSystem);
     initSpeedPlanets(&solarSystem);
     initDistPlanets(&solarSystem);
-    initColor(&solarSystem);
 
     /* on crée le tableau de temps pour les vitesses */
     float newTime[8];
     initTime(&newTime);
+
+    /* textures */
+    SDL_Surface* img[9];
+    img[0]=IMG_Load("textures/mercury.jpg");
+    img[1]=IMG_Load("textures/venus.jpg");
+    img[2]=IMG_Load("textures/earth.jpg");
+    img[3]=IMG_Load("textures/mars.jpg");
+    img[4]=IMG_Load("textures/jupiter.jpg");
+    img[5]=IMG_Load("textures/saturn.jpg");
+	img[6]=IMG_Load("textures/uranus.jpg");
+	img[7]=IMG_Load("textures/neptune.jpg");
+	img[8]=IMG_Load("textures/sun.jpg");
+
+    GLuint textures[9];
+    glGenTextures(9, textures);
+    int i;
+    for(i=0; i<9; i++){
+    	glBindTexture(GL_TEXTURE_2D, textures[i]);
+    	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    	glTexImage2D(
+    		GL_TEXTURE_2D,
+    		0,
+    		GL_RGB,
+    		img[i]->w,
+    		img[i]->h,
+    		0,
+    		GL_RGB,
+    		GL_UNSIGNED_BYTE,
+    		img[i]->pixels
+    	);
+    	glBindTexture(GL_TEXTURE_2D, 0);
+    	SDL_FreeSurface(img[i]);
+    }
 
 	int loop = 1;
     glClearColor(0.1, 0.1, 0.1 ,1);
@@ -227,10 +235,10 @@ int main(int argc, char** argv) {
         glPushMatrix();
         	glScalef(7,7,1);
        		glColor3ub(255,255,0);
-	        drawCircle(1);
+	        drawPlanet(textures[8]);
 		glPopMatrix();
 		
-		drawPlanets(solarSystem, newTime);
+		drawPlanets(solarSystem, newTime, textures);
 
 		//drawLandmark();
 
@@ -259,6 +267,7 @@ int main(int argc, char** argv) {
             SDL_Delay(FRAMERATE_MILLISECONDS - elapsedTime);
         }
     }
+    glDeleteTextures(8, textures);
     // Liberation des ressources associées à la SDL
     SDL_Quit();
 
